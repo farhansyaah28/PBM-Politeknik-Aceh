@@ -1,0 +1,18 @@
+.env
+/runtime/
+/outputs/
+
+# Bukti pembayaran dan dokumen peserta selalu berada di luar web root dan tidak boleh masuk repository.
+/storage/private/*
+!/storage/private/.gitkeep
+
+# Ilustrasi orisinal antarmuka adalah bagian dari source aplikasi.
+!/public/assets/hero-pmb-students.png
+!/public/assets/login-pmb-student.png
+
+# Perkakas desain Impeccable (lokal, bukan bagian dari deliverable klien).
+/.claude/
+/.agents/
+/.codex/
+/.impeccable/
+/.gstack/

@@ -1,0 +1,3 @@
+USE pmb_politeknik_aceh;
+
+ALTER TABLE exam_attempts MODIFY status ENUM('READY','IN_PROGRESS','PAUSED_REVIEW','SUBMITTED') NOT NULL DEFAULT 'READY';
