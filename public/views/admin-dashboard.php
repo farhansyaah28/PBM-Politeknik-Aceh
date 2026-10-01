@@ -48,7 +48,7 @@ require __DIR__ . '/partials/portal-context.php';
         <article class="portal-panel portal-priority-panel"><header class="portal-panel-heading"><div><h2>Prioritas hari ini</h2><p>Urutan kerja yang paling berdampak.</p></div></header><ol class="portal-priority-list">
           <li><span>1</span><div><strong>Tinjau peserta menunggu</strong><p><?= $e($summary['pending_verification']) ?> data masih memerlukan keputusan Panitia.</p><a href="/admin/peserta?status=PENDING">Buka daftar peserta</a></div></li>
           <li><span>2</span><div><strong>Pastikan sesi siap</strong><p>Periksa jadwal, token, dan penugasan peserta.</p><a href="/admin/ujian">Periksa sesi</a></div></li>
-          <li><span>3</span><div><strong>Tinjau hasil dan keputusan</strong><p><?= $e($summary['scored_results']) ?> hasil dinilai, <?= $e($summary['published_decisions']) ?> keputusan dipublikasikan.</p><a href="/admin/laporan">Buka laporan</a></div></li>
+          <li><span>3</span><div><strong>Tinjau hasil dan keputusan</strong><p><?= $e($summary['scored_results']) ?> hasil dinilai, <?= $e($summary['published_decisions']) ?> keputusan dipublikasikan.</p><a href="/admin/keputusan">Kelola keputusan</a></div></li>
         </ol></article>
       </aside>
     </section>

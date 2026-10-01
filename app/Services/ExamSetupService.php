@@ -239,7 +239,8 @@ final class ExamSetupService
         }
     }
 
-    public function assignAllEligible(string $sessionId, string $actorId, ?string $admissionPath = null): int
+    /** @param list<string>|null $selectedParticipantIds */
+    public function assignAllEligible(string $sessionId, string $actorId, ?string $admissionPath = null, ?array $selectedParticipantIds = null): int
     {
         $this->db->beginTransaction();
         try {
@@ -254,7 +255,23 @@ final class ExamSetupService
                 $params['admission_path'] = trim($admissionPath);
             }
 
-            $eligible = $this->db->prepare('SELECT p.id FROM participants p INNER JOIN users u ON u.id=p.user_id AND u.status="ACTIVE" WHERE p.wave_id=:wave_id AND p.account_status="ACTIVE" AND p.verification_status="APPROVED"' . $pathFilter . ' AND NOT EXISTS (SELECT 1 FROM exam_assignments existing_assignment WHERE existing_assignment.participant_id=p.id AND existing_assignment.assignment_status<>"CANCELLED") AND NOT EXISTS (SELECT 1 FROM exam_attempts existing_attempt WHERE existing_attempt.participant_id=p.id) AND NOT EXISTS (SELECT 1 FROM exam_results existing_result WHERE existing_result.participant_id=p.id) FOR UPDATE');
+            $idFilter = '';
+            if ($selectedParticipantIds !== null) {
+                $cleanedIds = array_values(array_filter(array_map('trim', $selectedParticipantIds), fn($id) => $id !== ''));
+                if ($cleanedIds === []) {
+                    $this->db->commit();
+                    return 0;
+                }
+                $placeholders = [];
+                foreach ($cleanedIds as $idx => $pid) {
+                    $key = 'sel_id_' . $idx;
+                    $placeholders[] = ':' . $key;
+                    $params[$key] = $pid;
+                }
+                $idFilter = ' AND p.id IN (' . implode(',', $placeholders) . ')';
+            }
+
+            $eligible = $this->db->prepare('SELECT p.id FROM participants p INNER JOIN users u ON u.id=p.user_id AND u.status="ACTIVE" WHERE p.wave_id=:wave_id AND p.account_status="ACTIVE" AND p.verification_status="APPROVED"' . $pathFilter . $idFilter . ' AND NOT EXISTS (SELECT 1 FROM exam_assignments existing_assignment WHERE existing_assignment.participant_id=p.id AND existing_assignment.assignment_status<>"CANCELLED") AND NOT EXISTS (SELECT 1 FROM exam_attempts existing_attempt WHERE existing_attempt.participant_id=p.id) AND NOT EXISTS (SELECT 1 FROM exam_results existing_result WHERE existing_result.participant_id=p.id) FOR UPDATE');
             $eligible->execute($params);
             $assignment = $this->db->prepare('INSERT INTO exam_assignments (id, session_id, participant_id, assignment_status, assigned_by, assigned_at, created_at, updated_at) VALUES (:id, :session_id, :participant_id, "ASSIGNED", :actor_id, UTC_TIMESTAMP(), UTC_TIMESTAMP(), UTC_TIMESTAMP())');
             $assigned = 0;
@@ -267,6 +284,33 @@ final class ExamSetupService
             $this->audit($actorId, 'exam.assignment.bulk_created', 'exam_session', $sessionId);
             $this->db->commit();
             return $assigned;
+        } catch (\Throwable $exception) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            throw $exception;
+        }
+    }
+
+    public function deleteSession(string $sessionId, string $actorId): void
+    {
+        $this->db->beginTransaction();
+        try {
+            $session = $this->db->prepare('SELECT id FROM exam_sessions WHERE id = :id FOR UPDATE');
+            $session->execute(['id' => $sessionId]);
+            if (!$session->fetch()) {
+                throw new ValidationException(['session' => 'Sesi ujian tidak ditemukan.']);
+            }
+
+            $this->db->prepare('DELETE FROM exam_answers WHERE attempt_id IN (SELECT id FROM exam_attempts WHERE session_id = :id)')->execute(['id' => $sessionId]);
+            $this->db->prepare('DELETE FROM attempt_questions WHERE attempt_id IN (SELECT id FROM exam_attempts WHERE session_id = :id)')->execute(['id' => $sessionId]);
+            $this->db->prepare('DELETE FROM exam_security_events WHERE attempt_id IN (SELECT id FROM exam_attempts WHERE session_id = :id)')->execute(['id' => $sessionId]);
+            $this->db->prepare('DELETE FROM proctoring_photos WHERE attempt_id IN (SELECT id FROM exam_attempts WHERE session_id = :id)')->execute(['id' => $sessionId]);
+            $this->db->prepare('DELETE FROM exam_attempts WHERE session_id = :id')->execute(['id' => $sessionId]);
+            $this->db->prepare('DELETE FROM exam_results WHERE session_id = :id')->execute(['id' => $sessionId]);
+            $this->db->prepare('DELETE FROM exam_assignments WHERE session_id = :id')->execute(['id' => $sessionId]);
+            $this->db->prepare('DELETE FROM exam_sessions WHERE id = :id')->execute(['id' => $sessionId]);
+
+            $this->audit($actorId, 'exam.session.deleted', 'exam_session', $sessionId);
+            $this->db->commit();
         } catch (\Throwable $exception) {
             if ($this->db->inTransaction()) $this->db->rollBack();
             throw $exception;

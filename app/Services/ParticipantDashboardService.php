@@ -29,7 +29,9 @@ final class ParticipantDashboardService
         $participant['identity_reviewed_at_wib'] = $this->formatWib($participant['identity_reviewed_at'] ?? null);
 
         $participant['exam_sessions'] = $this->examSessions($participantId);
+        $participant['all_results'] = array_values(array_filter($participant['exam_sessions'], static fn (array $session): bool => !empty($session['result_id'])));
         $participant['results'] = array_values(array_filter($participant['exam_sessions'], static fn (array $session): bool => !empty($session['result_id']) && (bool) $session['is_visible']));
+        $participant['has_hidden_result'] = count($participant['all_results']) > 0 && count($participant['results']) === 0;
         $participant['exam_summary'] = $this->examSummary($participant['exam_sessions']);
         return $participant;
     }

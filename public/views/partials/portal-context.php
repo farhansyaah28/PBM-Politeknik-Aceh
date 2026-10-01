@@ -16,19 +16,10 @@ $portalMaps = [
             ['key'=>'exams','label'=>'Sesi ujian','href'=>'/admin/ujian'],
             ['key'=>'questions','label'=>'Bank soal','href'=>'/admin/bank-soal'],
             ['key'=>'monitoring','label'=>'Pengawasan','href'=>'/admin/pengawasan'],
+            ['key'=>'decisions','label'=>'Keputusan kelulusan','href'=>'/admin/keputusan'],
             ['key'=>'reports','label'=>'Laporan hasil','href'=>'/admin/laporan'],
             ['key'=>'configuration','label'=>'Konfigurasi','href'=>'/admin/konfigurasi'],
             ['key'=>'retention','label'=>'Retensi data','href'=>'/admin/retensi'],
-        ],
-    ],
-    'COMMITTEE' => [
-        'home' => '/panitia/dashboard',
-        'label' => 'Panitia PMB',
-        'nav' => [
-            ['key'=>'dashboard','label'=>'Dashboard','href'=>'/panitia/dashboard'],
-            ['key'=>'verification','label'=>'Verifikasi peserta','href'=>'/panitia/verifikasi'],
-            ['key'=>'decisions','label'=>'Keputusan kelulusan','href'=>'/panitia/keputusan'],
-            ['key'=>'reports','label'=>'Laporan hasil','href'=>'/panitia/laporan'],
         ],
     ],
     'PARTICIPANT' => [

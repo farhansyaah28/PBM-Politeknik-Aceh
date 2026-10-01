@@ -31,8 +31,15 @@ final class ParticipantManagementService
             $userId = $this->uuid(); $participantId = $this->uuid();
             $username = $this->newUsername($data['username'] ?: strtolower(str_replace('-', '', $number)));
             $this->db->prepare('INSERT INTO users (id,username,email,password_hash,role,status,created_at,updated_at) VALUES (:id,:username,:email,:password_hash,"PARTICIPANT","ACTIVE",UTC_TIMESTAMP(),UTC_TIMESTAMP())')->execute(['id'=>$userId,'username'=>$username,'email'=>$data['email'],'password_hash'=>password_hash($password, PASSWORD_DEFAULT)]);
-            $this->db->prepare('INSERT INTO participants (id,user_id,registration_number,password_ciphertext,full_name,email,phone_number,school_name,graduation_year,admission_path,program_choice,wave,program_id,wave_id,account_status,verification_status,registration_submitted_at,created_at,updated_at) VALUES (:id,:user_id,:number,:password_ciphertext,:full_name,:email,:phone,:school,:year,:admission_path,:program_name,:wave_name,:program_id,:wave_id,"ACTIVE","PENDING",UTC_TIMESTAMP(),UTC_TIMESTAMP(),UTC_TIMESTAMP())')->execute([
+            $this->db->prepare('INSERT INTO participants (id,user_id,registration_number,password_ciphertext,full_name,email,phone_number,school_name,graduation_year,admission_path,program_choice,wave,program_id,wave_id,account_status,verification_status,registration_submitted_at,created_at,updated_at) VALUES (:id,:user_id,:number,:password_ciphertext,:full_name,:email,:phone,:school,:year,:admission_path,:program_name,:wave_name,:program_id,:wave_id,"ACTIVE","APPROVED",UTC_TIMESTAMP(),UTC_TIMESTAMP(),UTC_TIMESTAMP())')->execute([
                 'id'=>$participantId,'user_id'=>$userId,'number'=>$number,'password_ciphertext'=>$passwordCiphertext,'full_name'=>$data['full_name'],'email'=>$data['email'],'phone'=>$data['phone_number'],'school'=>$data['school_name'],'year'=>$data['graduation_year'],'admission_path'=>$data['admission_path'],'program_name'=>$program['name'],'wave_name'=>$wave['name'],'program_id'=>$program['id'],'wave_id'=>$wave['id'],
+            ]);
+            $this->db->prepare('INSERT INTO verification_decisions (id,participant_id,decision,checklist_json,note,reviewed_by,created_at) VALUES (:id,:participant,"APPROVED",:checks,:note,:actor,UTC_TIMESTAMP())')->execute([
+                'id' => $this->uuid(),
+                'participant' => $participantId,
+                'checks' => json_encode(['V-01','V-02','V-03','V-04','V-05','V-06','V-07','V-08','V-09','V-10'], JSON_THROW_ON_ERROR),
+                'note' => 'Terdaftar dan diverifikasi otomatis oleh Admin.',
+                'actor' => $actorId,
             ]);
             $this->audit($actorId, $participantId, 'participant.created', 'participant', $participantId);
             $this->db->commit();

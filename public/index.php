@@ -190,27 +190,19 @@ if ($path === '/ujian' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
     $title = 'Sesi Ujian Saya'; require __DIR__ . '/views/exam-sessions.php'; exit;
 }
 
-if ($path === '/panitia/verifikasi/identitas' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    $user=Auth::requireInternal(); if(!hash_equals($_SESSION['csrf'],(string)($_POST['csrf']??''))){http_response_code(419);exit('Permintaan tidak valid.');}
-    try{(new CommitteeVerificationService(Database::connect($config['db'])))->decideIdentity((string)$_POST['participant_id'],$user['user_id'],(string)$_POST['decision'],$_POST['checks']??[],trim((string)($_POST['note']??'')));$_SESSION['committee_success']='Keputusan identitas disimpan.';}catch(ValidationException $e){$_SESSION['committee_error']=implode(' ',$e->errors);}catch(Throwable $e){error_log($e->getMessage());$_SESSION['committee_error']='Keputusan belum dapat disimpan.';}
-    $redirectQuery = http_build_query(['peserta' => (string) $_POST['participant_id'], 'q' => trim((string) ($_POST['q'] ?? ''))]);
-    header('Location: /panitia/verifikasi?' . $redirectQuery,true,303);exit;
-}
-if ($path === '/panitia/verifikasi/semua' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    $user = Auth::requireInternal(); if (!hash_equals($_SESSION['csrf'], (string) ($_POST['csrf'] ?? ''))) { http_response_code(419); exit('Permintaan tidak valid.'); }
-    try {
-        $count = (new CommitteeVerificationService(Database::connect($config['db'])))->approveAll($user['user_id']);
-        $_SESSION['committee_success'] = $count > 0 ? $count . ' peserta berhasil disetujui dan diverifikasi secara massal.' : 'Seluruh peserta yang ada sudah disetujui sebelumnya.';
-    } catch (ValidationException $e) { $_SESSION['committee_error'] = implode(' ', $e->errors); }
-    catch (Throwable $e) { error_log($e->getMessage()); $_SESSION['committee_error'] = 'Verifikasi massal belum dapat diproses.'; }
-    header('Location: /panitia/verifikasi', true, 303); exit;
-}
-if ($path === '/panitia/verifikasi' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
-    $user=Auth::requireInternal();$service=new CommitteeVerificationService(Database::connect($config['db']));$queueData=$service->queue(trim((string)($_GET['q']??'')),$_GET['page']??1);$queue=$queueData['rows'];$queuePaginator=$queueData['paginator'];$participantId=(string)($_GET['peserta']??($queue[0]['id']??''));$workspace=$participantId?$service->workspace($participantId):null;$committeeSuccess=$_SESSION['committee_success']??null;$committeeError=$_SESSION['committee_error']??null;unset($_SESSION['committee_success'],$_SESSION['committee_error']);$title='Verifikasi Peserta';require __DIR__.'/views/committee-verification.php';exit;
+if (str_starts_with($path, '/panitia/')) {
+    Auth::requireAdmin();
+    $target = match ($path) {
+        '/panitia/dashboard' => '/admin/dashboard',
+        '/panitia/laporan', '/panitia/laporan/csv', '/panitia/laporan/cetak' => '/admin/laporan',
+        default => '/admin/keputusan',
+    };
+    header('Location: ' . $target, true, 301);
+    exit;
 }
 
-if ($path === '/panitia/keputusan/tetapkan' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    $user = Auth::requireInternal();
+if ($path === '/admin/keputusan/tetapkan' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $user = Auth::requireAdmin();
     if (!hash_equals($_SESSION['csrf'], (string) ($_POST['csrf'] ?? ''))) { http_response_code(419); exit('Permintaan tidak valid.'); }
     try {
         (new OfficialDecisionService(Database::connect($config['db'])))->decide((string) ($_POST['result_id'] ?? ''), $user['user_id'], (string) ($_POST['decision'] ?? ''), trim((string) ($_POST['note'] ?? '')));
@@ -220,11 +212,11 @@ if ($path === '/panitia/keputusan/tetapkan' && ($_SERVER['REQUEST_METHOD'] ?? 'G
     } catch (Throwable $exception) {
         error_log($exception->getMessage()); $_SESSION['decision_error'] = 'Keputusan resmi belum dapat disimpan.';
     }
-    header('Location: /panitia/keputusan', true, 303); exit;
+    header('Location: /admin/keputusan', true, 303); exit;
 }
 
-if ($path === '/panitia/keputusan/publikasikan' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    $user = Auth::requireInternal();
+if ($path === '/admin/keputusan/publikasikan' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $user = Auth::requireAdmin();
     if (!hash_equals($_SESSION['csrf'], (string) ($_POST['csrf'] ?? ''))) { http_response_code(419); exit('Permintaan tidak valid.'); }
     try {
         (new OfficialDecisionService(Database::connect($config['db'])))->publish((string) ($_POST['decision_id'] ?? ''), $user['user_id']);
@@ -234,7 +226,40 @@ if ($path === '/panitia/keputusan/publikasikan' && ($_SERVER['REQUEST_METHOD'] ?
     } catch (Throwable $exception) {
         error_log($exception->getMessage()); $_SESSION['decision_error'] = 'Keputusan belum dapat dipublikasikan.';
     }
-    header('Location: /panitia/keputusan', true, 303); exit;
+    header('Location: /admin/keputusan', true, 303); exit;
+}
+
+if ($path === '/admin/keputusan/toggle-nilai' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $user = Auth::requireAdmin();
+    if (!hash_equals($_SESSION['csrf'], (string) ($_POST['csrf'] ?? ''))) { http_response_code(419); exit('Permintaan tidak valid.'); }
+    try {
+        $resultId = (string) ($_POST['result_id'] ?? '');
+        $isVisible = (int) ($_POST['is_visible'] ?? 1);
+        (new OfficialDecisionService(Database::connect($config['db'])))->toggleScoreVisibility($resultId, $isVisible, $user['user_id']);
+        $_SESSION['decision_success'] = $isVisible === 1 ? 'Nilai peserta sekarang ditampilkan kepada peserta.' : 'Nilai peserta berhasil disembunyikan dari peserta.';
+    } catch (Throwable $exception) {
+        error_log($exception->getMessage()); $_SESSION['decision_error'] = 'Gagal mengubah visibilitas nilai.';
+    }
+    header('Location: /admin/keputusan', true, 303); exit;
+}
+
+if (($path === '/admin/keputusan/sembunyikan-nilai-massal' || $path === '/admin/keputusan/tampilkan-nilai-massal') && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $user = Auth::requireAdmin();
+    if (!hash_equals($_SESSION['csrf'], (string) ($_POST['csrf'] ?? ''))) { http_response_code(419); exit('Permintaan tidak valid.'); }
+    try {
+        $service = new OfficialDecisionService(Database::connect($config['db']));
+        $selectedResultIds = isset($_POST['selected_result_ids']) && is_array($_POST['selected_result_ids']) ? $_POST['selected_result_ids'] : [];
+        $isVisible = $path === '/admin/keputusan/tampilkan-nilai-massal' ? 1 : 0;
+        if ($selectedResultIds !== []) {
+            $count = $service->toggleScoreVisibilityBatch($selectedResultIds, $isVisible, $user['user_id']);
+            $_SESSION['decision_success'] = $count . ' nilai peserta berhasil ' . ($isVisible === 1 ? 'ditampilkan' : 'disembunyikan') . '.';
+        } else {
+            $_SESSION['decision_error'] = 'Pilih setidaknya satu peserta untuk mengubah visibilitas nilai.';
+        }
+    } catch (Throwable $exception) {
+        error_log($exception->getMessage()); $_SESSION['decision_error'] = 'Gagal mengubah visibilitas nilai massal.';
+    }
+    header('Location: /admin/keputusan', true, 303); exit;
 }
 
 if ($path === '/admin/dashboard' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
@@ -243,15 +268,8 @@ if ($path === '/admin/dashboard' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'G
     $title = 'Dashboard Admin'; require __DIR__ . '/views/admin-dashboard.php'; exit;
 }
 
-if ($path === '/panitia/dashboard' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
-    $user = Auth::requireInternal();
-    if ($user['role'] === 'ADMIN') { header('Location: /admin/dashboard', true, 303); exit; }
-    $committeeDashboard = (new RoleDashboardService(Database::connect($config['db'])))->committee();
-    $title = 'Dashboard Panitia'; require __DIR__ . '/views/committee-dashboard.php'; exit;
-}
-
-if ($path === '/panitia/keputusan/jadwalkan' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    $user = Auth::requireInternal();
+if ($path === '/admin/keputusan/jadwalkan' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $user = Auth::requireAdmin();
     if (!hash_equals($_SESSION['csrf'], (string) ($_POST['csrf'] ?? ''))) { http_response_code(419); exit('Permintaan tidak valid.'); }
     try {
         $count = (new OfficialDecisionService(Database::connect($config['db'])))->scheduleAllPending((string) ($_POST['publish_at'] ?? ''), $user['user_id']);
@@ -261,11 +279,11 @@ if ($path === '/panitia/keputusan/jadwalkan' && ($_SERVER['REQUEST_METHOD'] ?? '
     } catch (Throwable $exception) {
         error_log($exception->getMessage()); $_SESSION['decision_error'] = 'Jadwal publikasi belum dapat disimpan.';
     }
-    header('Location: /panitia/keputusan?status=SCHEDULED', true, 303); exit;
+    header('Location: /admin/keputusan?status=SCHEDULED', true, 303); exit;
 }
 
-if ($path === '/panitia/keputusan/batalkan-jadwal' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    $user = Auth::requireInternal();
+if ($path === '/admin/keputusan/batalkan-jadwal' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $user = Auth::requireAdmin();
     if (!hash_equals($_SESSION['csrf'], (string) ($_POST['csrf'] ?? ''))) { http_response_code(419); exit('Permintaan tidak valid.'); }
     try {
         $count = (new OfficialDecisionService(Database::connect($config['db'])))->cancelAllSchedules($user['user_id']);
@@ -275,13 +293,70 @@ if ($path === '/panitia/keputusan/batalkan-jadwal' && ($_SERVER['REQUEST_METHOD'
     } catch (Throwable $exception) {
         error_log($exception->getMessage()); $_SESSION['decision_error'] = 'Jadwal publikasi belum dapat dibatalkan.';
     }
-    header('Location: /panitia/keputusan?status=PENDING', true, 303); exit;
+    header('Location: /admin/keputusan?status=PENDING', true, 303); exit;
 }
 
-if ($path === '/panitia/keputusan' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
-    $user = Auth::requireInternal();
-    $decisionFilters = ['search' => trim((string) ($_GET['search'] ?? '')), 'status' => strtoupper(trim((string) ($_GET['status'] ?? 'ALL'))), 'page'=>$_GET['page']??1];
-    $decisionQueueData = (new OfficialDecisionService(Database::connect($config['db'])))->queue($user['user_id'], $decisionFilters);$decisionQueue=$decisionQueueData['rows'];$decisionPaginator=$decisionQueueData['paginator'];
+if ($path === '/admin/keputusan/tetapkan-massal' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $user = Auth::requireAdmin();
+    if (!hash_equals($_SESSION['csrf'], (string) ($_POST['csrf'] ?? ''))) { http_response_code(419); exit('Permintaan tidak valid.'); }
+    try {
+        $service = new OfficialDecisionService(Database::connect($config['db']));
+        $selectedResultIds = isset($_POST['selected_result_ids']) && is_array($_POST['selected_result_ids']) ? $_POST['selected_result_ids'] : null;
+        if ($selectedResultIds !== null && $selectedResultIds !== []) {
+            $count = $service->confirmSelectedAutoDecisionsBatch($selectedResultIds, $user['user_id']);
+            $_SESSION['decision_success'] = $count > 0 ? $count . ' peserta terpilih berhasil ditetapkan keputusannya.' : 'Peserta terpilih sudah memiliki keputusan sebelumnya.';
+        } else {
+            $sessionId = trim((string) ($_POST['session_id'] ?? ''));
+            $admissionPath = trim((string) ($_POST['admission_path'] ?? ''));
+            $count = $service->confirmAllAutoDecisionsBatch($user['user_id'], $sessionId !== '' ? $sessionId : null, $admissionPath !== '' ? $admissionPath : null);
+            $_SESSION['decision_success'] = $count > 0 ? $count . ' keputusan berhasil ditetapkan secara massal.' : 'Semua peserta pada kriteria ini sudah memiliki keputusan.';
+        }
+    } catch (ValidationException $exception) {
+        $_SESSION['decision_error'] = implode(' ', $exception->errors);
+    } catch (Throwable $exception) {
+        error_log($exception->getMessage()); $_SESSION['decision_error'] = 'Penetapan massal belum dapat diproses.';
+    }
+    header('Location: /admin/keputusan', true, 303); exit;
+}
+
+if ($path === '/admin/keputusan/publikasikan-massal' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $user = Auth::requireAdmin();
+    if (!hash_equals($_SESSION['csrf'], (string) ($_POST['csrf'] ?? ''))) { http_response_code(419); exit('Permintaan tidak valid.'); }
+    try {
+        $service = new OfficialDecisionService(Database::connect($config['db']));
+        $selectedDecisionIds = isset($_POST['selected_decision_ids']) && is_array($_POST['selected_decision_ids']) ? $_POST['selected_decision_ids'] : null;
+        if ($selectedDecisionIds !== null && $selectedDecisionIds !== []) {
+            $count = $service->publishSelectedBatch($selectedDecisionIds, $user['user_id']);
+            $_SESSION['decision_success'] = $count > 0 ? $count . ' keputusan terpilih berhasil dipublikasikan kepada peserta.' : 'Tidak ada keputusan pending terpilih yang dipublikasikan.';
+        } else {
+            $sessionId = trim((string) ($_POST['session_id'] ?? ''));
+            $admissionPath = trim((string) ($_POST['admission_path'] ?? ''));
+            $count = $service->publishAllPendingBatch($user['user_id'], $sessionId !== '' ? $sessionId : null, $admissionPath !== '' ? $admissionPath : null);
+            $_SESSION['decision_success'] = $count > 0 ? $count . ' keputusan pending berhasil dipublikasikan secara massal kepada peserta.' : 'Tidak ada keputusan pending yang dipublikasikan pada kriteria ini.';
+        }
+    } catch (ValidationException $exception) {
+        $_SESSION['decision_error'] = implode(' ', $exception->errors);
+    } catch (Throwable $exception) {
+        error_log($exception->getMessage()); $_SESSION['decision_error'] = 'Publikasi massal belum dapat diproses.';
+    }
+    header('Location: /admin/keputusan', true, 303); exit;
+}
+
+if ($path === '/admin/keputusan' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+    $user = Auth::requireAdmin();
+    $decisionFilters = [
+        'search' => trim((string) ($_GET['search'] ?? '')),
+        'status' => strtoupper(trim((string) ($_GET['status'] ?? 'ALL'))),
+        'session_id' => trim((string) ($_GET['session_id'] ?? '')),
+        'admission_path' => trim((string) ($_GET['admission_path'] ?? '')),
+        'page' => $_GET['page'] ?? 1
+    ];
+    $decisionQueueData = (new OfficialDecisionService(Database::connect($config['db'])))->queue($user['user_id'], $decisionFilters);
+    $decisionQueue = $decisionQueueData['rows'];
+    $decisionPaginator = $decisionQueueData['paginator'];
+    $decisionSessions = $decisionQueueData['sessions'];
+    $decisionAdmissionPaths = $decisionQueueData['admission_paths'];
+    $decisionStats = $decisionQueueData['stats'];
     $decisionSuccess = $_SESSION['decision_success'] ?? null; $decisionError = $_SESSION['decision_error'] ?? null;
     unset($_SESSION['decision_success'], $_SESSION['decision_error']);
     $title = 'Keputusan Kelulusan'; require __DIR__ . '/views/official-decisions.php'; exit;
@@ -291,14 +366,14 @@ if (in_array($path, ['/panitia/laporan/csv', '/admin/laporan/csv'], true) && ($_
     $user = $path === '/admin/laporan/csv' ? Auth::requireAdmin() : Auth::requireInternal();
     if ($path === '/panitia/laporan/csv' && $user['role'] === 'ADMIN') { header('Location: /admin/laporan/csv', true, 303); exit; }
     $service = new ReportingService(Database::connect($config['db']));
-    $report = $service->report($user['user_id'], 1, true); $service->recordOutput($user['user_id'], 'EXPORT_CSV');
+    $report = $service->report($user['user_id'], 1, true, (string) ($_GET['session_id'] ?? ''), (string) ($_GET['search'] ?? ''), (string) ($_GET['admission_path'] ?? ''), (string) ($_GET['wave_id'] ?? ''), (string) ($_GET['decision_status'] ?? '')); $service->recordOutput($user['user_id'], 'EXPORT_CSV');
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="laporan-hasil-pmb.csv"');
     echo "\xEF\xBB\xBF";
     $output = fopen('php://output', 'wb');
-    fputcsv($output, ['Nomor Peserta', 'Nama Peserta', 'Program Studi', 'Gelombang', 'Nilai', 'Benar', 'Salah', 'Kosong', 'Keputusan Resmi', 'Status Komunikasi', 'Waktu Nilai (UTC)']);
+    fputcsv($output, ['Nomor Peserta', 'Nama Peserta', 'Program Studi', 'Gelombang', 'Sesi Ujian', 'Nilai', 'Benar', 'Salah', 'Kosong', 'Keputusan Resmi', 'Status Komunikasi', 'Waktu Nilai (UTC)']);
     foreach ($report['rows'] as $row) {
-        fputcsv($output, array_map(fn ($value) => $service->csvCell((string) ($value ?? '')), [$row['registration_number'], $row['full_name'], $row['program_name'], $row['wave_name'], $row['score'], $row['correct_count'], $row['incorrect_count'], $row['unanswered_count'], $row['official_decision'], $row['communication_status'], $row['scored_at']]));
+        fputcsv($output, array_map(fn ($value) => $service->csvCell((string) ($value ?? '')), [$row['registration_number'], $row['full_name'], $row['program_name'], $row['wave_name'], $row['session_name'], $row['score'], $row['correct_count'], $row['incorrect_count'], $row['unanswered_count'], $row['official_decision'], $row['communication_status'], $row['scored_at']]));
     }
     fclose($output); exit;
 }
@@ -307,7 +382,7 @@ if (in_array($path, ['/panitia/laporan/cetak', '/admin/laporan/cetak'], true) &&
     $user = $path === '/admin/laporan/cetak' ? Auth::requireAdmin() : Auth::requireInternal();
     if ($path === '/panitia/laporan/cetak' && $user['role'] === 'ADMIN') { header('Location: /admin/laporan/cetak', true, 303); exit; }
     $service = new ReportingService(Database::connect($config['db']));
-    $report = $service->report($user['user_id'], 1, true); $service->recordOutput($user['user_id'], 'PRINT');
+    $report = $service->report($user['user_id'], 1, true, (string) ($_GET['session_id'] ?? ''), (string) ($_GET['search'] ?? ''), (string) ($_GET['admission_path'] ?? ''), (string) ($_GET['wave_id'] ?? ''), (string) ($_GET['decision_status'] ?? '')); $service->recordOutput($user['user_id'], 'PRINT');
     $reportPortal = str_starts_with($path, '/admin/') ? 'ADMIN' : 'COMMITTEE';
     $printMode = true; $title = 'Cetak Laporan Hasil PMB'; require __DIR__ . '/views/reporting.php'; exit;
 }
@@ -315,7 +390,7 @@ if (in_array($path, ['/panitia/laporan/cetak', '/admin/laporan/cetak'], true) &&
 if (in_array($path, ['/panitia/laporan', '/admin/laporan'], true) && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
     $user = $path === '/admin/laporan' ? Auth::requireAdmin() : Auth::requireInternal();
     if ($path === '/panitia/laporan' && $user['role'] === 'ADMIN') { header('Location: /admin/laporan', true, 303); exit; }
-    $report = (new ReportingService(Database::connect($config['db'])))->report($user['user_id'], $_GET['page']??1);
+    $report = (new ReportingService(Database::connect($config['db'])))->report($user['user_id'], $_GET['page']??1, false, (string) ($_GET['session_id'] ?? ''), (string) ($_GET['search'] ?? ''), (string) ($_GET['admission_path'] ?? ''), (string) ($_GET['wave_id'] ?? ''), (string) ($_GET['decision_status'] ?? ''));
     $reportPortal = $path === '/admin/laporan' ? 'ADMIN' : 'COMMITTEE';
     $printMode = false; $title = 'Laporan Hasil PMB'; require __DIR__ . '/views/reporting.php'; exit;
 }
@@ -397,7 +472,7 @@ if ($path === '/admin/retensi' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET
     $user=Auth::requireAdmin();$service=new RetentionService(Database::connect($config['db']));$retentionInventory=$service->inventory($user['user_id']);$retentionHoldData=$service->activeHolds($user['user_id'],$_GET['page']??1);$retentionHolds=$retentionHoldData['rows'];$retentionPaginator=$retentionHoldData['paginator'];$retentionConfiguration=$service->retentionConfiguration($user['user_id']);$retentionParticipants=Database::connect($config['db'])->query('SELECT id,registration_number,full_name FROM participants ORDER BY created_at DESC LIMIT 100')->fetchAll();$retentionSuccess=$_SESSION['retention_success']??null;$retentionError=$_SESSION['retention_error']??null;unset($_SESSION['retention_success'],$_SESSION['retention_error']);$title='Retensi Data';require __DIR__.'/views/admin-retention.php';exit;
 }
 
-if (in_array($path, ['/admin/program', '/admin/program/perbarui', '/admin/program/hapus', '/admin/jalur-masuk', '/admin/jalur-masuk/perbarui', '/admin/jalur-masuk/hapus', '/admin/gelombang', '/admin/gelombang/perbarui', '/admin/status', '/admin/kategori', '/admin/soal', '/admin/soal/perbarui', '/admin/soal/nonaktifkan', '/admin/soal/aktifkan', '/admin/sesi', '/admin/sesi/token', '/admin/sesi/jadwal', '/admin/tugaskan', '/admin/tugaskan/semua'], true) && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+if (in_array($path, ['/admin/program', '/admin/program/perbarui', '/admin/program/hapus', '/admin/jalur-masuk', '/admin/jalur-masuk/perbarui', '/admin/jalur-masuk/hapus', '/admin/gelombang', '/admin/gelombang/perbarui', '/admin/status', '/admin/kategori', '/admin/soal', '/admin/soal/perbarui', '/admin/soal/nonaktifkan', '/admin/soal/aktifkan', '/admin/sesi', '/admin/sesi/token', '/admin/sesi/jadwal', '/admin/sesi/hapus', '/admin/tugaskan', '/admin/tugaskan/semua'], true) && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $user = Auth::requireAdmin();
     if (!hash_equals($_SESSION['csrf'], (string) ($_POST['csrf'] ?? ''))) { http_response_code(419); exit('Permintaan tidak valid.'); }
     try {
@@ -423,12 +498,17 @@ if (in_array($path, ['/admin/program', '/admin/program/perbarui', '/admin/progra
         }
         if ($path === '/admin/sesi/token') (new ExamSetupService(Database::connect($config['db']), $config['token_encryption_key']))->configureSessionToken((string) ($_POST['session_id'] ?? ''), isset($_POST['token_required']), trim((string) ($_POST['token'] ?? '')), $user['user_id']);
         if ($path === '/admin/sesi/jadwal') (new ExamSetupService(Database::connect($config['db'])))->scheduleSession((string) ($_POST['session_id'] ?? ''), (string) ($_POST['starts_at'] ?? ''), (string) ($_POST['ends_at'] ?? ''), $user['user_id'], (string) ($_POST['passing_grade'] ?? ''));
+        if ($path === '/admin/sesi/hapus') {
+            (new ExamSetupService(Database::connect($config['db'])))->deleteSession((string) ($_POST['session_id'] ?? ''), $user['user_id']);
+            $_SESSION['admin_success'] = 'Sesi ujian berhasil dihapus.';
+        }
         if ($path === '/admin/tugaskan') (new ExamSetupService(Database::connect($config['db'])))->assignParticipant((string) ($_POST['session_id'] ?? ''), (string) ($_POST['participant_id'] ?? ''), $user['user_id']);
         if ($path === '/admin/tugaskan/semua') {
             $admissionPath = trim((string) ($_POST['admission_path'] ?? ''));
-            $count = (new ExamSetupService(Database::connect($config['db'])))->assignAllEligible((string) ($_POST['session_id'] ?? ''), $user['user_id'], $admissionPath !== '' ? $admissionPath : null);
+            $selectedParticipantIds = isset($_POST['selected_participant_ids']) && is_array($_POST['selected_participant_ids']) ? array_map('strval', $_POST['selected_participant_ids']) : null;
+            $count = (new ExamSetupService(Database::connect($config['db'])))->assignAllEligible((string) ($_POST['session_id'] ?? ''), $user['user_id'], $admissionPath !== '' ? $admissionPath : null, $selectedParticipantIds);
             $pathLabel = ($admissionPath !== '' && $admissionPath !== 'ALL') ? ' (' . htmlspecialchars($admissionPath, ENT_QUOTES, 'UTF-8') . ')' : '';
-            $_SESSION['admin_success'] = $count > 0 ? $count . ' peserta eligible' . $pathLabel . ' ditugaskan ke sesi.' : 'Tidak ada peserta eligible baru' . $pathLabel . ' yang perlu ditugaskan ke sesi ini.';
+            $_SESSION['admin_success'] = $count > 0 ? $count . ' peserta eligible' . $pathLabel . ' berhasil ditugaskan ke sesi.' : 'Tidak ada peserta eligible baru' . $pathLabel . ' yang ditugaskan ke sesi ini.';
         }
         if (!isset($_SESSION['admin_success'])) $_SESSION['admin_success'] = 'Konfigurasi disimpan dan tercatat pada audit log.';
     } catch (ValidationException $exception) {
@@ -436,7 +516,7 @@ if (in_array($path, ['/admin/program', '/admin/program/perbarui', '/admin/progra
     } catch (Throwable $exception) {
         error_log($exception->getMessage()); $_SESSION['admin_error'] = 'Konfigurasi belum dapat disimpan.';
     }
-    header('Location: ' . (in_array($path, ['/admin/kategori', '/admin/soal', '/admin/soal/perbarui', '/admin/soal/nonaktifkan', '/admin/soal/aktifkan'], true) ? '/admin/bank-soal' : (in_array($path, ['/admin/sesi', '/admin/sesi/token', '/admin/sesi/jadwal', '/admin/tugaskan', '/admin/tugaskan/semua'], true) ? '/admin/ujian' : '/admin/konfigurasi')), true, 303); exit;
+    header('Location: ' . (in_array($path, ['/admin/kategori', '/admin/soal', '/admin/soal/perbarui', '/admin/soal/nonaktifkan', '/admin/soal/aktifkan'], true) ? '/admin/bank-soal' : (in_array($path, ['/admin/sesi', '/admin/sesi/token', '/admin/sesi/jadwal', '/admin/sesi/hapus', '/admin/tugaskan', '/admin/tugaskan/semua'], true) ? '/admin/ujian' : '/admin/konfigurasi')), true, 303); exit;
 }
 
 if ($path === '/admin/bank-soal/template' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {

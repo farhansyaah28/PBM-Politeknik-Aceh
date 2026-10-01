@@ -33,7 +33,7 @@ final class ParticipantExamService
     /** @return array<string,mixed>|null */
     public function result(string $attemptId, string $participantId): ?array
     {
-        $statement = $this->db->prepare('SELECT er.id AS result_id, er.score, er.passing_grade, er.automatic_decision, er.correct_count, er.incorrect_count, er.unanswered_count, er.status, er.scored_at, s.name AS session_name FROM exam_results er INNER JOIN exam_sessions s ON s.id=er.session_id WHERE er.attempt_id=:attempt_id AND er.participant_id=:participant_id AND er.status="SCORED" AND er.is_visible=1 LIMIT 1');
+        $statement = $this->db->prepare('SELECT er.id AS result_id, er.score, er.passing_grade, er.automatic_decision, er.correct_count, er.incorrect_count, er.unanswered_count, er.status, er.is_visible, er.scored_at, s.name AS session_name FROM exam_results er INNER JOIN exam_sessions s ON s.id=er.session_id WHERE er.attempt_id=:attempt_id AND er.participant_id=:participant_id AND er.status="SCORED" LIMIT 1');
         $statement->execute(['attempt_id' => $attemptId, 'participant_id' => $participantId]);
         return $statement->fetch() ?: null;
     }

@@ -13,10 +13,11 @@ require __DIR__ . '/partials/portal-context.php';
 <section class="session-list">
 <?php foreach ($sessions as $session):
     $attemptStatus = $session['attempt_status'] ?? null;
-    $statusLabel = $session['result_id'] ? 'Ujian selesai' : ($attemptStatus === 'PAUSED_REVIEW' ? 'Menunggu review Admin' : ($attemptStatus === 'IN_PROGRESS' ? 'Sedang berlangsung' : ($attemptStatus === 'READY' ? 'Pemeriksaan belum selesai' : 'Siap dimulai')));
+    $isCompleted = (bool) $session['result_id'] || $attemptStatus === 'SUBMITTED';
+    $statusLabel = $isCompleted ? 'Ujian selesai' : ($attemptStatus === 'PAUSED_REVIEW' ? 'Menunggu review Admin' : ($attemptStatus === 'IN_PROGRESS' ? 'Sedang berlangsung' : ($attemptStatus === 'READY' ? 'Pemeriksaan belum selesai' : 'Siap dimulai')));
 ?>
-<article class="card compact session-card"><div><span class="status-pill status-<?= $session['result_id'] ? 'success' : ($attemptStatus === 'PAUSED_REVIEW' ? 'warning' : ($attemptStatus === 'IN_PROGRESS' ? 'info' : 'neutral')) ?>"><?= $e($statusLabel) ?></span><h2><?= $e($session['name']) ?></h2><p>Jadwal: <?= $e($session['starts_at_wib']) ?> sampai <?= $e($session['ends_at_wib']) ?></p><p><?= $e($session['duration_minutes']) ?> menit · <?= $e($session['security_mode'] === 'PROCTORING_LITE' ? 'Kamera dan layar penuh' : 'Layar penuh') ?></p></div><div class="session-action">
-<?php if ($session['result_id'] && $session['is_visible']): ?><a class="primary link-button" href="/ujian/hasil?attempt=<?= urlencode($session['attempt_id']) ?>">Lihat hasil</a>
+<article class="card compact session-card"><div><span class="status-pill status-<?= $isCompleted ? 'success' : ($attemptStatus === 'PAUSED_REVIEW' ? 'warning' : ($attemptStatus === 'IN_PROGRESS' ? 'info' : 'neutral')) ?>"><?= $e($statusLabel) ?></span><h2><?= $e($session['name']) ?></h2><p>Jadwal: <?= $e($session['starts_at_wib']) ?> sampai <?= $e($session['ends_at_wib']) ?></p><p><?= $e($session['duration_minutes']) ?> menit · <?= $e($session['security_mode'] === 'PROCTORING_LITE' ? 'Kamera dan layar penuh' : 'Layar penuh') ?></p></div><div class="session-action">
+<?php if ($isCompleted): ?><a class="primary link-button" href="/ujian/hasil?attempt=<?= urlencode($session['attempt_id']) ?>">Lihat status hasil</a>
 <?php elseif ($attemptStatus === 'PAUSED_REVIEW'): ?><div class="notice alert"><b>Attempt dijeda</b><br><small>Admin perlu meninjau insiden sebelum ujian dapat dilanjutkan. Timer server tetap berlaku.</small></div>
 <?php elseif ($attemptStatus === 'IN_PROGRESS'): ?><a class="primary link-button" href="<?= $session['has_photo'] ? '/ujian/ruang' : '/ujian/security' ?>?attempt=<?= urlencode($session['attempt_id']) ?>"><?= $session['has_photo'] ? 'Lanjutkan ujian' : 'Lanjutkan pemeriksaan' ?></a>
 <?php elseif ($attemptStatus === 'READY'): ?><a class="primary link-button" href="/ujian/security?attempt=<?= urlencode($session['attempt_id']) ?>">Lanjutkan pemeriksaan perangkat</a>

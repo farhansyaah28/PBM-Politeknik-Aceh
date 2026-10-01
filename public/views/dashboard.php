@@ -6,9 +6,12 @@ $identityTone = match ($participant['verification_status']) {'APPROVED'=>'succes
 $examTone = match ($participant['exam_summary']['state']) {'COMPLETED'=>'success','PAUSED_REVIEW'=>'warning','IN_PROGRESS','READY','ASSIGNED'=>'info',default=>'neutral'};
 $examStateLabels = ['COMPLETED'=>'Selesai','PAUSED_REVIEW'=>'Dalam peninjauan','IN_PROGRESS'=>'Sedang berlangsung','READY'=>'Persiapan perangkat','ASSIGNED'=>'Sudah ditugaskan','UNASSIGNED'=>'Belum ditugaskan'];
 $latestResult = $participant['results'][0] ?? null;
-$decisionPublished = $latestResult && ($latestResult['decision_communication_status'] ?? null) === 'PUBLISHED';
-$decisionLabel = !$decisionPublished ? 'Menunggu keputusan' : (($latestResult['official_decision'] ?? '') === 'PASSED' ? 'Lulus' : 'Tidak lulus');
-$decisionTone = !$decisionPublished ? 'info' : (($latestResult['official_decision'] ?? '') === 'PASSED' ? 'success' : 'danger');
+$hasHiddenResult = $participant['has_hidden_result'] ?? false;
+$allResults = $participant['all_results'] ?? [];
+$latestAllResult = $allResults[0] ?? null;
+$decisionPublished = $latestAllResult && ($latestAllResult['decision_communication_status'] ?? null) === 'PUBLISHED';
+$decisionLabel = !$decisionPublished ? 'Menunggu keputusan' : (($latestAllResult['official_decision'] ?? '') === 'PASSED' ? 'Lulus' : 'Tidak lulus');
+$decisionTone = !$decisionPublished ? 'info' : (($latestAllResult['official_decision'] ?? '') === 'PASSED' ? 'success' : 'danger');
 $currentSession = $participant['exam_sessions'][0] ?? null;
 $tokenRequired = $currentSession ? (bool) ($currentSession['token_required'] ?? true) : null;
 $automaticDecisionLabel = !$latestResult ? null : (($latestResult['automatic_decision'] ?? '') === 'PASSED' ? 'Lulus' : 'Tidak lulus');
@@ -42,7 +45,19 @@ require __DIR__ . '/partials/portal-context.php';
     <section class="portal-metrics" aria-label="Ringkasan status peserta">
       <article class="portal-metric"><span>Verifikasi identitas</span><strong class="portal-metric-text"><?= $e($identityStatus) ?></strong><small><?= $participant['eligible'] ? 'Data siap untuk penugasan ujian' : 'Menunggu pemeriksaan Panitia' ?></small></article>
       <article class="portal-metric"><span>Status sesi</span><strong class="portal-metric-text"><?= $e($participant['eligible'] ? $participant['exam_summary']['title'] : 'Belum dapat diakses') ?></strong><small><?= $e($currentSession['name'] ?? 'Belum ada sesi') ?></small></article>
-      <article class="portal-metric"><span>Nilai terbaru</span><strong><?= $latestResult ? $e(number_format((float) $latestResult['score'], 2, ',', '.')) : '-' ?></strong><small><?= $latestResult ? 'Hasil ujian telah dinilai' : 'Belum ada hasil ujian' ?></small></article>
+      <article class="portal-metric">
+        <span>Nilai terbaru</span>
+        <?php if ($latestResult): ?>
+          <strong><?= $e(number_format((float) $latestResult['score'], 2, ',', '.')) ?></strong>
+          <small>Hasil ujian telah dinilai</small>
+        <?php elseif ($hasHiddenResult): ?>
+          <strong class="portal-metric-text" style="color:var(--portal-muted);">Disembunyikan</strong>
+          <small>Nilai ujian disembunyikan oleh Panitia</small>
+        <?php else: ?>
+          <strong>-</strong>
+          <small>Belum ada hasil ujian</small>
+        <?php endif; ?>
+      </article>
       <article class="portal-metric <?= $decisionPublished ? '' : 'portal-metric-priority' ?>"><span>Keputusan resmi</span><strong class="portal-metric-text"><?= $e($decisionLabel) ?></strong><small><?= $decisionPublished ? 'Keputusan telah dipublikasikan' : 'Diumumkan melalui sistem setelah ditetapkan' ?></small></article>
     </section>
 
