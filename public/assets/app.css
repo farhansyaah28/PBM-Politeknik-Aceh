@@ -600,6 +600,19 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,
 .decision-banner .decision-footnote{display:flex;align-items:flex-start;gap:8px;font-size:13px!important;line-height:1.5!important;padding-top:12px;border-top:1px dashed rgba(0,0,0,0.15);font-weight:500}
 .decision-banner .decision-footnote svg{flex:none;margin-top:2px;opacity:0.85}
 
+.participant-result-panel{display:flex;flex-direction:column;justify-content:space-between;padding:22px 24px!important;min-height:200px;border-radius:14px}
+.result-header-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.participant-result-panel h2{margin:0;font-size:16px;font-weight:750;color:var(--portal-text,#0f172a)}
+.result-encouraging-title{margin:14px 0 8px 0;font-size:18px!important;font-weight:750!important;line-height:1.35!important;color:var(--navy,#0f172a)!important;letter-spacing:-.01em}
+.result-note-text{margin:0 0 16px 0;color:var(--portal-muted,#64748b);font-size:13px;line-height:1.5}
+.result-score-display{margin:12px 0 8px}
+.result-score-display strong{display:block;font-size:40px;font-weight:800;line-height:1;color:var(--navy,#0f172a)}
+.result-score-display small{display:block;margin-top:6px;color:var(--portal-muted,#64748b);font-size:12px}
+.result-action-link{display:inline-flex;align-items:center;gap:6px;color:var(--navy,#0f172a);font-size:13px;font-weight:650;text-decoration:none;margin-top:12px;padding-top:14px;border-top:1px solid var(--portal-rule,#e2e8f0);transition:all .2s ease}
+.result-action-link:hover{color:#1e3a8a;gap:9px}
+.result-action-link svg{transition:transform .2s ease}
+.result-action-link:hover svg{transform:translateX(3px)}
+
 .exam-runtime-body{min-width:1024px;background:var(--portal-canvas)}
 .exam-runtime-body .exam-page{width:min(1360px,calc(100% - 40px));margin:0 auto;padding:20px 0 84px}
 .exam-command-bar{top:12px;border:1px solid var(--portal-rule);border-radius:14px;background:rgba(255,255,255,.96);box-shadow:0 10px 26px rgba(23,36,58,.08)}

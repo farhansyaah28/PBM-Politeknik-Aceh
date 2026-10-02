@@ -82,10 +82,31 @@ $encouragingText = !$decisionPublished
         : 'Tetap semangat dan terus berjuang!');
 ?>
         <div class="participant-support-stack<?= ($latestResult || $latestAllResult) ? '' : ' participant-support-stack-single' ?>">
-          <?php if ($latestResult): ?>
-            <article class="portal-panel participant-result-panel"><header><div><h2>Hasil terbaru</h2><span class="status-pill status-<?= $e($decisionTone) ?>"><?= $e($decisionLabel) ?></span></div><strong><?= $e(number_format((float) $latestResult['score'], 2, ',', '.')) ?></strong><small>Nilai ujian &bull; batas lulus <?= $e(number_format((float) $latestResult['result_passing_grade'], 2, ',', '.')) ?></small><p>Kategori otomatis: <b><?= $e($automaticDecisionLabel) ?></b>. Keputusan resmi tetap mengikuti publikasi Panitia.</p></header><a href="/ujian/hasil?attempt=<?= urlencode($latestResult['attempt_id']) ?>">Lihat rincian hasil</a></article>
-          <?php elseif ($latestAllResult): ?>
-            <article class="portal-panel participant-result-panel"><header><div><h2>Hasil terbaru</h2><span class="status-pill status-<?= $e($decisionTone) ?>"><?= $e($decisionLabel) ?></span></div><b style="display:block; font-size:16px !important; line-height:1.4 !important; font-weight:700 !important; color:var(--portal-text, #0f172a); margin:12px 0 4px !important;"><?= $e($encouragingText) ?></b><small>Rincian keputusan resmi Panitia</small><p>Nilai angka ujian disembunyikan. Keputusan resmi Panitia dapat dilihat pada rincian hasil.</p></header><a href="/ujian/hasil?attempt=<?= urlencode($latestAllResult['attempt_id']) ?>">Lihat rincian hasil</a></article>
+          <?php if ($latestResult || $latestAllResult): ?>
+            <article class="portal-panel participant-result-panel">
+              <header>
+                <div class="result-header-row">
+                  <h2>Hasil terbaru</h2>
+                  <span class="status-pill status-<?= $e($decisionTone) ?>"><?= $e($decisionLabel) ?></span>
+                </div>
+
+                <?php if ($latestResult): ?>
+                  <div class="result-score-display">
+                    <strong><?= $e(number_format((float) $latestResult['score'], 2, ',', '.')) ?></strong>
+                    <small>Nilai ujian &bull; batas lulus <?= $e(number_format((float) $latestResult['result_passing_grade'], 2, ',', '.')) ?></small>
+                  </div>
+                  <p class="result-note-text">Kategori otomatis: <b><?= $e($automaticDecisionLabel) ?></b>. Keputusan resmi tetap mengikuti publikasi Panitia.</p>
+                <?php else: ?>
+                  <h3 class="result-encouraging-title"><?= $e($encouragingText) ?></h3>
+                  <p class="result-note-text">Nilai angka ujian disembunyikan. Keputusan resmi Panitia dapat dilihat pada rincian hasil.</p>
+                <?php endif; ?>
+              </header>
+
+              <a class="result-action-link" href="/ujian/hasil?attempt=<?= urlencode(($latestResult ?? $latestAllResult)['attempt_id']) ?>">
+                <span>Lihat rincian hasil</span>
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </a>
+            </article>
           <?php endif; ?>
           <article class="portal-panel portal-help-panel"><h2>Butuh bantuan?</h2><p>Hubungi Panitia dengan menyebutkan nama dan nomor peserta agar pemeriksaan lebih cepat.</p><div class="participant-help-links"><a href="https://wa.me/628116719201">WhatsApp 0811-6719-201</a><a href="mailto:pmb@politeknikaceh.ac.id">pmb@politeknikaceh.ac.id</a></div></article>
         </div>
