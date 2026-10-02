@@ -578,14 +578,27 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,
 .result-score>span{color:var(--portal-muted);font-size:12px;font-weight:600}
 .result-score>strong{color:var(--navy);font-size:64px;line-height:1;font-variant-numeric:tabular-nums}
 .result-score>small{margin-top:5px}
-.result-panel .official-decision,.result-panel .decision-banner{margin-top:18px;padding:18px 20px;border-radius:12px;line-height:1.55}
-.result-panel .decision-banner.decision-passed{border:1px solid #acd5be!important;background:#edf8f2!important;color:#155f3d!important}
-.result-panel .decision-banner.decision-passed strong{display:block;font-size:16px;margin-bottom:6px;color:#0f462d!important}
-.result-panel .decision-banner.decision-passed p{margin:0 0 8px;color:#155f3d!important;font-size:13.5px}
-.result-panel .decision-banner.decision-failed{border:1px solid #edc0bc!important;background:#fcebea!important;color:#8e241c!important}
-.result-panel .decision-banner.decision-failed strong{display:block;font-size:16px;margin-bottom:6px;color:#721c24!important}
-.result-panel .decision-banner.decision-failed p{margin:0 0 8px;color:#8e241c!important;font-size:13.5px}
-.decision-banner .decision-footnote{font-size:12.5px;padding-top:8px;border-top:1px dashed currentColor;font-weight:500;opacity:.95}
+.result-panel .official-decision,.result-panel .decision-banner{margin-top:22px;padding:22px 24px;border-radius:14px;line-height:1.55;box-shadow:0 4px 16px rgba(0,0,0,0.03);transition:all .2s ease}
+.result-panel .decision-banner.decision-passed{border:1px solid #bbf7d0!important;border-left:5px solid #16a34a!important;background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%)!important;color:#14532d!important}
+.result-panel .decision-banner.decision-passed .decision-icon{background:#16a34a;color:#fff;box-shadow:0 3px 8px rgba(22,163,74,0.25)}
+.result-panel .decision-banner.decision-passed .decision-badge{background:rgba(22,163,74,0.12);color:#15803d;border:1px solid rgba(22,163,74,0.2)}
+.result-panel .decision-banner.decision-passed strong{color:#14532d!important}
+.result-panel .decision-banner.decision-passed .decision-note{color:#166534!important}
+.result-panel .decision-banner.decision-passed .decision-footnote{border-top-color:rgba(22,163,74,0.25);color:#15803d}
+.result-panel .decision-banner.decision-failed{border:1px solid #fecdd3!important;border-left:5px solid #e11d48!important;background:linear-gradient(135deg,#fff5f5 0%,#ffe4e6 100%)!important;color:#881337!important}
+.result-panel .decision-banner.decision-failed .decision-icon{background:#e11d48;color:#fff;box-shadow:0 3px 8px rgba(225,29,72,0.25)}
+.result-panel .decision-banner.decision-failed .decision-badge{background:rgba(225,29,72,0.1);color:#be123c;border:1px solid rgba(225,29,72,0.2)}
+.result-panel .decision-banner.decision-failed strong{color:#881337!important}
+.result-panel .decision-banner.decision-failed .decision-note{color:#9f1239!important}
+.result-panel .decision-banner.decision-failed .decision-footnote{border-top-color:rgba(225,29,72,0.25);color:#9f1239}
+.decision-banner .decision-header{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.decision-banner .decision-icon{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center}
+.decision-banner .decision-title-group{display:flex;flex-direction:column;gap:3px}
+.decision-banner .decision-badge{display:inline-block;width:max-content;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;padding:2px 9px;border-radius:20px}
+.decision-banner strong{display:block;font-size:17px!important;font-weight:800!important;line-height:1.3!important;margin:0!important}
+.decision-banner .decision-note{margin:0 0 14px 0!important;font-size:13.5px!important;line-height:1.55!important}
+.decision-banner .decision-footnote{display:flex;align-items:flex-start;gap:8px;font-size:13px!important;line-height:1.5!important;padding-top:12px;border-top:1px dashed rgba(0,0,0,0.15);font-weight:500}
+.decision-banner .decision-footnote svg{flex:none;margin-top:2px;opacity:0.85}
 
 .exam-runtime-body{min-width:1024px;background:var(--portal-canvas)}
 .exam-runtime-body .exam-page{width:min(1360px,calc(100% - 40px));margin:0 auto;padding:20px 0 84px}
