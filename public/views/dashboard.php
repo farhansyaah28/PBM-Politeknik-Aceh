@@ -74,8 +74,12 @@ require __DIR__ . '/partials/portal-context.php';
           <li><span>3</span><div><strong>Ikuti pemeriksaan keamanan</strong><p>Izinkan kamera dan tetap berada di halaman ujian.</p></div></li>
         </ol></article>
 
-        <div class="participant-support-stack<?= $latestResult ? '' : ' participant-support-stack-single' ?>">
-          <?php if ($latestResult): ?><article class="portal-panel participant-result-panel"><header><div><h2>Hasil terbaru</h2><span class="status-pill status-<?= $e($decisionTone) ?>"><?= $e($decisionLabel) ?></span></div><strong><?= $e(number_format((float) $latestResult['score'], 2, ',', '.')) ?></strong><small>Nilai ujian · batas lulus <?= $e(number_format((float) $latestResult['result_passing_grade'], 2, ',', '.')) ?></small><p>Kategori otomatis: <b><?= $e($automaticDecisionLabel) ?></b>. Keputusan resmi tetap mengikuti publikasi Panitia.</p></header><a href="/ujian/hasil?attempt=<?= urlencode($latestResult['attempt_id']) ?>">Lihat rincian hasil</a></article><?php endif; ?>
+        <div class="participant-support-stack<?= ($latestResult || $latestAllResult) ? '' : ' participant-support-stack-single' ?>">
+          <?php if ($latestResult): ?>
+            <article class="portal-panel participant-result-panel"><header><div><h2>Hasil terbaru</h2><span class="status-pill status-<?= $e($decisionTone) ?>"><?= $e($decisionLabel) ?></span></div><strong><?= $e(number_format((float) $latestResult['score'], 2, ',', '.')) ?></strong><small>Nilai ujian &bull; batas lulus <?= $e(number_format((float) $latestResult['result_passing_grade'], 2, ',', '.')) ?></small><p>Kategori otomatis: <b><?= $e($automaticDecisionLabel) ?></b>. Keputusan resmi tetap mengikuti publikasi Panitia.</p></header><a href="/ujian/hasil?attempt=<?= urlencode($latestResult['attempt_id']) ?>">Lihat rincian hasil</a></article>
+          <?php elseif ($latestAllResult): ?>
+            <article class="portal-panel participant-result-panel"><header><div><h2>Hasil terbaru</h2><span class="status-pill status-<?= $e($decisionTone) ?>"><?= $e($decisionLabel) ?></span></div><strong style="font-size:24px; color:var(--portal-muted, #64748b);">Disembunyikan</strong><small>Nilai ujian disembunyikan oleh Panitia</small><p>Nilai angka ujian disembunyikan. Keputusan resmi Panitia dapat dilihat pada rincian hasil.</p></header><a href="/ujian/hasil?attempt=<?= urlencode($latestAllResult['attempt_id']) ?>">Lihat rincian hasil</a></article>
+          <?php endif; ?>
           <article class="portal-panel portal-help-panel"><h2>Butuh bantuan?</h2><p>Hubungi Panitia dengan menyebutkan nama dan nomor peserta agar pemeriksaan lebih cepat.</p><div class="participant-help-links"><a href="https://wa.me/628116719201">WhatsApp 0811-6719-201</a><a href="mailto:pmb@politeknikaceh.ac.id">pmb@politeknikaceh.ac.id</a></div></article>
         </div>
     </section>
